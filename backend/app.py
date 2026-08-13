@@ -11,7 +11,10 @@ import warnings
 warnings.filterwarnings("ignore")
 
 # Frontend files are one folder above backend
-app = Flask(__name__, static_folder="..", static_url_path="")
+import os
+
+BASE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+app = Flask(__name__, static_folder=BASE_PATH, static_url_path="/")
 CORS(app)
 
 # Local data folder inside backend/data
