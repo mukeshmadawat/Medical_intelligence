@@ -19,7 +19,7 @@ LOCAL_DIR = os.path.join(os.path.dirname(__file__), "data")
 app = Flask(__name__, static_folder=BASE_PATH, static_url_path="/")
 CORS(app)
 
-BASE_DIR = LOCAL_DIR
+BASE_DIR = os.path.join(os.path.dirname(__file__), "data")
 
 
 def _build_master():
@@ -263,6 +263,7 @@ def reload_data():
     return jsonify({"status": "ok"})
 
 
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=False)
+    app.run(host="0.0.0.0", port=port)
