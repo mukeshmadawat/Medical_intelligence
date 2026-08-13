@@ -10,15 +10,15 @@ import warnings
 
 warnings.filterwarnings("ignore")
 
-# Project root: /home/mukeshmadawat24/Medical_intelligence
+# Project root
 BASE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
-# Serve index.html from the project root
+# CSV folder
+LOCAL_DIR = os.path.join(os.path.dirname(__file__), "data")
+
 app = Flask(__name__, static_folder=BASE_PATH, static_url_path="/")
 CORS(app)
 
-# Local data folder: /home/mukeshmadawat24/Medical_intelligence/backend/data
-LOCAL_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 BASE_DIR = LOCAL_DIR
 
 
