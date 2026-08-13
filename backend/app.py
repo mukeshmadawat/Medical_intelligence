@@ -10,15 +10,16 @@ import warnings
 
 warnings.filterwarnings("ignore")
 
-# Frontend files are one folder above backend
-import os
-
+# Project root: /home/mukeshmadawat24/Medical_intelligence
 BASE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
+# Serve index.html from the project root
 app = Flask(__name__, static_folder=BASE_PATH, static_url_path="/")
 CORS(app)
 
-# Local data folder inside backend/data
+# Local data folder: /home/mukeshmadawat24/Medical_intelligence/backend/data
 LOCAL_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+BASE_DIR = LOCAL_DIR
 
 
 def _build_master():
