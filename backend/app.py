@@ -2,7 +2,7 @@
 MedIntelligence Flask Backend
 """
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, send_from_directory
 from flask_cors import CORS
 import pandas as pd
 import os
@@ -242,7 +242,7 @@ def _build_master():
 
 @app.route("/")
 def index():
-    return app.send_static_file("index.html")
+    return send_from_directory(BASE_PATH, "index.html")
 
 
 _CACHE = None
