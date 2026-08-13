@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>MedIntelligence — Frosted Pearl Edition</title>
+<meta name="description" content="4K obsidian noir medical analytics suite. Iridescent Three.js orb · GSAP 120fps · Glassmorphism 2.0"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,300;1,400&family=JetBrains+Mono:wght@300;400;500;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/three@0.162.0/build/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+<style>
+/* ── Reset & Tokens ───────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --teal:#007AFF;--crim:#FF4D4D;--gold:#F0C060;--vio:#9F7AEA;--blu:#4F8EF7;
+  --mono:'JetBrains Mono',monospace;
+  --serif:'Cormorant Garamond',serif;
+  --sans:'Inter',sans-serif;
+  --g:rgba(255,255,255,.7);
+  --gb:#E1E4E8;
+  --blur:blur(30px);
+}
+html,body{width:100%;height:100%;overflow:hidden;background:#F5F7FA;cursor:none}
+canvas#bg{position:fixed;inset:0;z-index:0}
+
+/* ── Custom Cursor ────────────────────────────── */
+#cur-dot{position:fixed;width:6px;height:6px;border-radius:50%;background:#1A1C1E;
+  pointer-events:none;z-index:9999;transform:translate(-50%,-50%)}
+#cur-ring{position:fixed;width:36px;height:36px;border-radius:50%;
+  border:1px solid rgba(26,28,30,.45);pointer-events:none;z-index:9999;
+  transform:translate(-50%,-50%);transition:width .2s,height .2s,border-color .2s}
+
+/* ── Scan-line overlay ────────────────────────── */
+#scanlines{position:fixed;inset:0;z-index:1;pointer-events:none;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.03) 3px)}
+
+/* ── Orb halo ─────────────────────────────────── */
+#halo{position:fixed;left:50%;top:50%;transform:translate(-50%,-52%);
+  width:500px;height:500px;border-radius:50%;pointer-events:none;z-index:2;
+  background:radial-gradient(circle,rgba(0,122,255,.07) 0%,transparent 68%);
+  animation:breathe 5s ease-in-out infinite}
+@keyframes breathe{0%,100%{opacity:.7;transform:translate(-50%,-52%) scale(1)}
+  50%{opacity:1;transform:translate(-50%,-52%) scale(1.09)}}
+
+/* ── Hero ─────────────────────────────────────── */
+#hero{position:fixed;inset:0;z-index:5;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;text-align:center;pointer-events:none}
+.h-eyebrow{font-family:var(--mono);font-size:.62rem;letter-spacing:.3em;
+  color:#4A4A4A;text-transform:uppercase;margin-bottom:18px}
+.h-medical{font-family:var(--serif);font-style:italic;font-weight:300;
+  font-size:clamp(52px,7.5vw,104px);color:#1A1C1E;line-height:1}
+.h-intel{font-family:var(--mono);font-weight:700;
+  font-size:clamp(13px,2vw,26px);letter-spacing:.35em;
+  color:#1A1C1E;text-transform:uppercase;margin-top:4px}
+.h-rule{width:1px;height:56px;margin:20px auto;
+  background:linear-gradient(to bottom,transparent,rgba(26,28,30,.18),transparent);opacity:0}
+.h-kpis{font-family:var(--mono);font-size:.64rem;letter-spacing:.13em;
+  color:#4A4A4A;text-transform:uppercase;opacity:0}
+.h-kpis .v{font-size:.92rem;font-weight:700}
+.h-kpis .vr{color:var(--crim)} .h-kpis .vg{color:var(--gold)}
+
+/* ── Top bar ──────────────────────────────────── */
+#topbar{position:fixed;top:0;left:0;right:0;z-index:20;
+  padding:28px 44px;display:flex;justify-content:space-between;align-items:flex-start;
+  pointer-events:none}
+#topbar>*{pointer-events:auto}
+.logo{font-family:var(--mono);font-size:.68rem;letter-spacing:.18em;
+  color:#4A4A4A;text-transform:uppercase;user-select:none}
+.logo em{color:var(--teal);font-style:normal}
+.nav{display:flex;gap:22px;align-items:center}
+.nl{font-family:var(--mono);font-size:.6rem;letter-spacing:.14em;
+  color:#4A4A4A;text-transform:uppercase;cursor:pointer;
+  text-decoration:none;position:relative;padding-bottom:3px;transition:color .25s}
+.nl::after{content:'';position:absolute;bottom:0;left:0;width:0;height:1px;
+  background:var(--teal);transition:width .3s}
+.nl:hover,.nl.active{color:var(--teal)}
+.nl:hover::after,.nl.active::after{width:100%}
+
+/* ── Bottom bar ───────────────────────────────── */
+#botbar{position:fixed;bottom:0;left:0;right:0;z-index:20;
+  padding:28px 44px;display:flex;justify-content:space-between;align-items:flex-end;
+  pointer-events:none}
+.feed{font-family:var(--mono);font-size:.58rem;letter-spacing:.11em;
+  color:#4A4A4A;text-transform:uppercase;line-height:2.2}
+.feed b{color:#1A1C1E;font-weight:400}
+.fdot{display:inline-block;width:5px;height:5px;border-radius:50%;
+  background:var(--teal);margin-right:6px;animation:blink 2s infinite}
+.copy{font-family:var(--mono);font-size:.52rem;letter-spacing:.12em;
+  color:#A0AAB5;text-transform:uppercase}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.15}}
+
+/* ── Pulse alert ──────────────────────────────── */
+#pulse{position:fixed;bottom:36px;left:50%;transform:translateX(-50%);z-index:21;
+  background:rgba(255,255,255,.85);border:1px solid rgba(255,77,77,.3);
+  backdrop-filter:var(--blur);border-radius:40px;padding:10px 26px;
+  display:flex;align-items:center;gap:12px;opacity:0;pointer-events:none}
+.pdot{width:7px;height:7px;border-radius:50%;background:var(--crim);
+  box-shadow:0 0 10px var(--crim);animation:blink 1.5s infinite}
+.plabel{font-family:var(--mono);font-size:.6rem;letter-spacing:.12em;
+  color:#1A1C1E;text-transform:uppercase}
+.pval{font-family:var(--mono);font-size:.82rem;font-weight:700;color:var(--crim)}
+
+/* ── Side panel (doctors) ─────────────────────── */
+#sidepanel{position:fixed;right:0;top:0;height:100vh;width:340px;z-index:30;
+  background:rgba(255,255,255,.8);border-left:1px solid var(--gb);
+  backdrop-filter:var(--blur);padding:76px 28px 36px;
+  transform:translateX(100%);transition:transform .55s cubic-bezier(.4,0,.2,1);overflow-y:auto}
+#sidepanel.open{transform:translateX(0)}
+.sp-close{position:absolute;top:26px;right:22px;font-family:var(--mono);
+  font-size:.6rem;color:#4A4A4A;cursor:pointer;letter-spacing:.1em;transition:color .2s}
+.sp-close:hover{color:#1A1C1E}
+.sp-head{font-family:var(--mono);font-size:.54rem;letter-spacing:.2em;
+  color:#A0AAB5;text-transform:uppercase;margin-bottom:16px;
+  padding-bottom:8px;border-bottom:1px solid var(--gb)}
+.sp-row{font-family:var(--mono);font-size:.67rem;color:#4A4A4A;
+  padding:9px 0;border-bottom:1px solid rgba(0,0,0,.04);
+  display:flex;justify-content:space-between;align-items:center;transition:color .15s}
+.sp-row:hover{color:#1A1C1E}
+.sp-val{color:var(--teal);font-weight:500}
+.sp-hot{color:var(--crim)}
+
+/* ════════════════════════════════════════════════
+   DASHBOARD
+════════════════════════════════════════════════ */
+#dash{position:fixed;inset:0;z-index:40;background:transparent;
+  overflow-y:auto;transform:translateY(102%);
+  transition:transform .7s cubic-bezier(.4,0,.2,1);will-change:transform}
+#dash.open{transform:translateY(0)}
+
+/* Top bar */
+.dtb{position:sticky;top:0;z-index:50;background:rgba(245,247,250,.85);
+  backdrop-filter:blur(28px);border-bottom:1px solid var(--gb);
+  padding:13px 32px;display:flex;align-items:center;justify-content:space-between}
+.dbk{font-family:var(--mono);font-size:.63rem;letter-spacing:.12em;
+  color:#4A4A4A;cursor:pointer;text-transform:uppercase;
+  transition:color .2s;display:flex;align-items:center;gap:8px}
+.dbk:hover{color:var(--teal)}
+.dtitle{font-family:var(--serif);font-style:italic;font-size:1.05rem;
+  color:#1A1C1E;font-weight:600}
+.dclock{font-family:var(--mono);font-size:.56rem;color:#A0AAB5;letter-spacing:.1em}
+
+/* Tab nav */
+.dc{padding:22px 32px;display:flex;flex-direction:column;gap:18px}
+.dnav{display:flex;gap:7px;flex-wrap:wrap}
+.dnt{font-family:var(--mono);font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;
+  padding:7px 16px;border-radius:24px;border:1px solid rgba(0,0,0,.08);
+  background:rgba(255,255,255,.6);color:#4A4A4A;cursor:pointer;transition:all .22s}
+.dnt:hover,.dnt.active{border-color:var(--teal);color:var(--teal);background:rgba(0,122,255,.08)}
+
+/* Sections — JS controls display; GSAP controls opacity */
+.view{display:none;opacity:0}.view.active{display:flex;flex-direction:column;gap:14px;opacity:1}
+/* No-show pulse indicator */
+.ns-pulse{display:inline-block;width:7px;height:7px;border-radius:50%;background:#FF4D4D;box-shadow:0 0 6px #FF4D4D;animation:blink 1.4s infinite;flex-shrink:0}
+
+/* KPI cards */
+.kr{display:grid;grid-template-columns:repeat(4,1fr);gap:13px}
+.dk{background:var(--g);border:1px solid var(--gb);border-radius:14px;
+  padding:20px;backdrop-filter:var(--blur);transition:border-color .3s,transform .2s}
+.dk:hover{border-color:rgba(0,122,255,.2);transform:translateY(-2px)}
+.dkl{font-family:var(--mono);font-size:.56rem;letter-spacing:.12em;
+  color:#A0AAB5;text-transform:uppercase;margin-bottom:10px}
+.dkv{font-family:var(--mono);font-size:1.6rem;font-weight:700;line-height:1;color:#1A1C1E}
+.dks{font-family:var(--mono);font-size:.56rem;color:#A0AAB5;margin-top:7px}
+.dk.tl .dkv{color:var(--teal)}.dk.cr .dkv{color:var(--crim)}
+.dk.go .dkv{color:var(--gold)}.dk.bl .dkv{color:var(--blu)}.dk.vi .dkv{color:var(--vio)}
+
+/* Chart cards */
+.crow{display:grid;gap:13px}
+.c2{grid-template-columns:1.55fr 1fr}
+.c22{grid-template-columns:1fr 1fr}
+.c3{grid-template-columns:1fr 1fr 1fr}
+.cc{background:var(--g);border:1px solid var(--gb);border-radius:14px;
+  padding:22px;backdrop-filter:var(--blur)}
+.cc h3{font-family:var(--mono);font-size:.56rem;letter-spacing:.14em;
+  color:#4A4A4A;text-transform:uppercase;margin-bottom:15px}
+.cc canvas{max-height:250px}
+
+/* Tables */
+.tbl{background:var(--g);border:1px solid var(--gb);border-radius:14px;overflow:auto;backdrop-filter:var(--blur)}
+table{width:100%;border-collapse:collapse}
+thead th{padding:11px 15px;text-align:left;font-family:var(--mono);font-size:.53rem;
+  letter-spacing:.1em;color:#A0AAB5;text-transform:uppercase;
+  border-bottom:1px solid var(--gb)}
+tbody tr{border-bottom:1px solid rgba(0,0,0,.04);transition:background .13s;cursor:pointer}
+tbody tr:hover{background:rgba(0,122,255,.04)}
+tbody td{padding:10px 15px;font-family:var(--mono);font-size:.7rem;color:#4A4A4A}
+
+/* Status badges */
+.sb{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;
+  border-radius:20px;font-family:var(--mono);font-size:.55rem;font-weight:700;letter-spacing:.06em}
+.sbn{background:rgba(255,77,77,.1);color:var(--crim);border:1px solid rgba(255,77,77,.2)}
+.sbs{background:rgba(0,122,255,.1);color:var(--teal);border:1px solid rgba(0,122,255,.2)}
+.sbc{background:rgba(240,192,96,.1);color:var(--gold);border:1px solid rgba(240,192,96,.2)}
+.pd{width:5px;height:5px;border-radius:50%;background:var(--crim);
+  animation:blink 1.4s infinite;display:inline-block}
+
+/* Grid */
+.gw{background:var(--g);border:1px solid var(--gb);border-radius:14px;overflow:hidden;backdrop-filter:var(--blur)}
+.gtb{padding:13px 17px;border-bottom:1px solid rgba(0,0,0,.04);
+  display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.gsi{font-family:var(--mono);font-size:.66rem;background:rgba(255,255,255,.6);
+  border:1px solid var(--gb);color:#1A1C1E;
+  padding:6px 14px;border-radius:24px;outline:none;width:210px;transition:border-color .2s}
+.gsi:focus{border-color:rgba(0,122,255,.4)}
+.gsi::placeholder{color:#A0AAB5}
+.gfb{font-family:var(--mono);font-size:.56rem;letter-spacing:.08em;text-transform:uppercase;
+  padding:5px 13px;border-radius:20px;border:1px solid var(--gb);
+  background:transparent;color:#4A4A4A;cursor:pointer;transition:all .2s}
+.gfb:hover,.gfb.active{border-color:var(--teal);color:var(--teal)}
+.gsc{max-height:390px;overflow-y:auto}
+.gft{padding:10px 17px;border-top:1px solid rgba(0,0,0,.04);
+  display:flex;justify-content:space-between;align-items:center;
+  font-family:var(--mono);font-size:.58rem;color:#A0AAB5}
+.pgb{font-family:var(--mono);font-size:.58rem;padding:3px 12px;border-radius:6px;
+  border:1px solid var(--gb);background:transparent;
+  color:#4A4A4A;cursor:pointer;transition:all .2s}
+.pgb:hover:not(:disabled){border-color:var(--teal);color:var(--teal)}
+.pgb:disabled{opacity:.22;cursor:default}
+
+/* Doctor rank bars */
+.drb{display:flex;flex-direction:column;gap:9px}
+.dri{display:grid;grid-template-columns:140px 1fr 54px;align-items:center;gap:10px}
+.drn{font-family:var(--mono);font-size:.6rem;color:#4A4A4A;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.drt{height:6px;background:rgba(0,0,0,.06);border-radius:3px;overflow:hidden}
+.drf{height:100%;border-radius:3px;transition:width .85s cubic-bezier(.4,0,.2,1)}
+.drp{font-family:var(--mono);font-size:.6rem;text-align:right;color:#1A1C1E}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(0,0,0,.15);border-radius:2px}
+</style>
+</head>
+<body>
+
+<!-- Canvas -->
+<canvas id="bg"></canvas>
+<!-- Scan lines -->
+<div id="scanlines"></div>
+<!-- Orb halo -->
+<div id="halo"></div>
+
+<!-- Cursors -->
+<div id="cur-dot"></div>
+<div id="cur-ring"></div>
+
+<!-- Hero -->
+<div id="hero">
+  <div class="h-eyebrow" id="h-eye">No-Show Intelligence Suite · Holographic Edition</div>
+  <div class="h-medical" id="h-med">Medical</div>
+  <div class="h-intel"   id="h-int">Intelligence.</div>
+  <div class="h-rule"    id="h-rl"></div>
+  <div class="h-kpis"   id="h-kp">
+    No-Show Rate &nbsp;<span class="v vr" id="h-rate">—</span>
+    &nbsp;·&nbsp; Revenue Leakage &nbsp;<span class="v vg" id="h-leak">—</span>
+  </div>
+</div>
+
+<!-- Top bar -->
+<div id="topbar">
+  <div class="logo">Med<em>Intelligence</em> &nbsp;Frosted Pearl</div>
+  <nav class="nav">
+    <a class="nl active" onclick="openDash('overview')">Overview</a>
+    <a class="nl" onclick="openDash('clinical')">Clinical</a>
+    <a class="nl" onclick="openDash('revenue')">Revenue</a>
+    <a class="nl" onclick="openDash('risk')">Risk Register</a>
+    <a class="nl" onclick="openDash('doctors')">Doctor Ranking</a>
+    <a class="nl" onclick="togglePanel()">Panel ↗</a>
+  </nav>
+</div>
+
+<!-- Bottom bar -->
+<div id="botbar">
+  <div class="feed">
+    <div><span class="fdot"></span>Live System</div>
+    <div id="f1" style="color:#A0AAB5">Initialising…</div>
+    <div id="f2" style="color:#A0AAB5">Awaiting data…</div>
+  </div>
+  <div class="copy">© 2026 MedIntelligence Noir · Holographic Edition</div>
+</div>
+
+<!-- Pulse alert -->
+<div id="pulse">
+  <span class="pdot"></span>
+  <span class="plabel">Revenue Leakage Detected</span>
+  <span class="pval" id="pval">—</span>
+</div>
+
+<!-- Side panel -->
+<div id="sidepanel">
+  <span class="sp-close" onclick="togglePanel()">[ close ]</span>
+  <div class="sp-head">// Doctor Performance Index</div>
+  <div id="sp-docs">Loading…</div>
+  <div class="sp-head" style="margin-top:26px">// High-Risk Patients</div>
+  <div id="sp-pts">Loading…</div>
+</div>
+
+<!-- Dashboard -->
+<div id="dash">
+  <div class="dtb">
+    <span class="dbk" onclick="closeDash()">← Return to Intelligence</span>
+    <span class="dtitle">Analytics Dashboard</span>
+    <span class="dclock" id="dclock"></span>
+  </div>
+  <div class="dc">
+    <div class="dnav">
+      <button class="dnt active" id="btn-overview"   onclick="switchView('s-overview', 'overview')">Overview</button>
+      <button class="dnt"        id="btn-clinical"   onclick="switchView('s-clinical', 'clinical')">Clinical Grid</button>
+      <button class="dnt"        id="btn-revenue"    onclick="switchView('s-revenue', 'revenue')">Revenue</button>
+      <button class="dnt"        id="btn-risk"       onclick="switchView('s-risk', 'risk')">Risk Register</button>
+      <button class="dnt"        id="btn-doctors"    onclick="switchView('s-doctors', 'doctors')">Doctor Ranking</button>
+      <button class="dnt"        id="btn-treatments" onclick="switchView('s-treatments', 'treatments')">Treatments</button>
+    </div>
+
+    <!-- OVERVIEW -->
+    <div class="view" id="s-overview" style="display:none">
+      <div class="kr" id="kpi-row"></div>
+      <div class="crow c2">
+        <div class="cc"><h3>Monthly Status Breakdown</h3><canvas id="cTrend"></canvas></div>
+        <div class="cc"><h3>Specialization Split</h3><canvas id="cSpec"></canvas></div>
+      </div>
+      <div class="crow c2">
+        <div class="cc"><h3>No-Show Trend</h3><canvas id="cLine"></canvas></div>
+        <div class="cc"><h3>Top Reasons for No-Show</h3><canvas id="cReason"></canvas></div>
+      </div>
+    </div>
+
+    <!-- CLINICAL GRID -->
+    <div class="view" id="s-clinical">
+      <div class="gw">
+        <div class="gtb">
+          <input class="gsi" id="g-search" placeholder="Search patient / doctor…" oninput="filterG()"/>
+          <button class="gfb active" onclick="setGF('all',this)">All</button>
+          <button class="gfb" onclick="setGF('No-show',this)">No-Show</button>
+          <button class="gfb" onclick="setGF('Scheduled',this)">Completed</button>
+          <button class="gfb" onclick="setGF('Cancelled',this)">Cancelled</button>
+        </div>
+        <div class="gsc" id="g-scroll">
+          <div style="padding:20px;font-family:var(--mono);font-size:.7rem;color:rgba(255,255,255,.2)">Loading…</div>
+        </div>
+        <div class="gft">
+          <span id="g-show">—</span>
+          <div style="display:flex;align-items:center;gap:8px">
+            <button class="pgb" id="gp-prev" onclick="gPg(-1)">← prev</button>
+            <span id="g-pg" style="font-size:.57rem">1/1</span>
+            <button class="pgb" id="gp-next" onclick="gPg(1)">next →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- REVENUE -->
+    <div class="view" id="s-revenue">
+      <div class="kr" id="rev-kr" style="grid-template-columns:repeat(3,1fr)"></div>
+      <div class="crow c22">
+        <div class="cc"><h3>Payment Status Distribution</h3><canvas id="cPayS"></canvas></div>
+        <div class="cc"><h3>Payment Method Breakdown</h3><canvas id="cPayM"></canvas></div>
+      </div>
+    </div>
+
+    <!-- RISK REGISTER -->
+    <div class="view" id="s-risk">
+      <div class="tbl" id="risk-tbl"></div>
+    </div>
+
+    <!-- DOCTOR RANKING -->
+    <div class="view" id="s-doctors">
+      <div class="cc">
+        <h3>Physician No-Show Rate — Ranked</h3>
+        <div class="drb" id="dr-bars" style="margin-top:6px"></div>
+      </div>
+      <div class="crow c22">
+        <div class="cc"><h3>No-Shows per Physician</h3><canvas id="cDocB"></canvas></div>
+        <div class="cc"><h3>Attendance Rate</h3><canvas id="cDocA"></canvas></div>
+      </div>
+    </div>
+
+    <!-- TREATMENTS -->
+    <div class="view" id="s-treatments">
+      <div class="crow c22">
+        <div class="cc"><h3>Treatment Types — No-Show Cases</h3><canvas id="cTreat"></canvas></div>
+        <div class="cc"><h3>No-Show Rate by Specialty</h3><canvas id="cSpecR"></canvas></div>
+      </div>
+    </div>
+
+  </div><!-- /dc -->
+</div><!-- /dash -->
+
+<script src="app.js" defer></script>
+</body>
+</html>
